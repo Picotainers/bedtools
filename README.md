@@ -1,5 +1,5 @@
 # bedtools
-Small, distroless-when-possible container for `bedtools`.
+Small compatibility-focused container for `bedtools`.
 
 ## how to use
 ```bash
