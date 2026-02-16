@@ -1,34 +1,26 @@
 # syntax=docker/dockerfile:1
-# Compatibility-first template for bedtools.
-# Installs package from Bioconda and copies the full conda runtime to avoid missing libs/interpreters.
 
-FROM mambaorg/micromamba:2.0.5-debian12-slim AS builder
+FROM debian:bookworm-slim AS builder
 
-RUN micromamba install -y -n base -c conda-forge -c bioconda \
-    bedtools \
-    && micromamba clean --all --yes
+ARG BEDTOOLS_VERSION=v2.31.1
+ARG BEDTOOLS_URL=https://github.com/arq5x/bedtools2/archive/refs/tags/v2.31.1.tar.gz
+ARG BEDTOOLS_SHA256=79a1ba318d309f4e74bfa74258b73ef578dccb1045e270998d7fe9da9f43a50e
 
-# Resolve a runnable command for this package.
-# Prefer exact match, then underscore variant, then prefix match.
-RUN set -eux; \
-    BIN=""; \
-    if [ -x "/opt/conda/bin/bedtools" ]; then BIN="/opt/conda/bin/bedtools"; fi; \
-    if [ -z "$BIN" ]; then CAND="/opt/conda/bin/$(echo bedtools | tr '-' '_')"; [ -x "$CAND" ] && BIN="$CAND" || true; fi; \
-    if [ -z "$BIN" ]; then BIN="$(find /opt/conda/bin -maxdepth 1 -type f -perm -111 -name 'bedtools*' | head -n1 || true)"; fi; \
-    test -n "$BIN"; \
-    printf '%s\n' "$BIN" > /tmp/tool-entry-path
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends ca-certificates curl g++ make python3 zlib1g-dev libbz2-dev liblzma-dev \
+    && rm -rf /var/lib/apt/lists/*
 
-FROM mambaorg/micromamba:2.0.5-debian12-slim
+WORKDIR /src
+RUN curl -fsSL "$BEDTOOLS_URL" -o bedtools.tar.gz \
+    && echo "$BEDTOOLS_SHA256  bedtools.tar.gz" | sha256sum -c - \
+    && tar -xzf bedtools.tar.gz
 
-COPY --from=builder /opt/conda /opt/conda
-COPY --from=builder /tmp/tool-entry-path /tmp/tool-entry-path
+WORKDIR /src/bedtools2-2.31.1
+RUN make CXXFLAGS="-O2 -static" LDFLAGS="-static" bin/bedtools \
+    && test -x bin/bedtools \
+    && cp bin/bedtools /tmp/bedtools
 
-USER root
-ENV PATH="/opt/conda/bin:${PATH}"
-ENV LD_LIBRARY_PATH="/opt/conda/lib:/opt/conda/lib64"
-RUN set -eux; \
-    BIN="$(cat /tmp/tool-entry-path)"; \
-    printf '#!/usr/bin/env bash\nexec "%s" "$@"\n' "$BIN" > /usr/local/bin/bedtools
-RUN chmod +x /usr/local/bin/bedtools && rm -f /tmp/tool-entry-path
+FROM scratch
+COPY --from=builder /tmp/bedtools /usr/local/bin/bedtools
 WORKDIR /data
 ENTRYPOINT ["/usr/local/bin/bedtools"]

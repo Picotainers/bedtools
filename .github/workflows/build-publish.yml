@@ -15,6 +15,28 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Build smoke-test image
+        run: docker build -t picotainers-local/bedtools:smoke .
+
+      - name: Smoke test
+        run: |
+          set -euo pipefail
+          mkdir -p testdata
+          cat > testdata/a.bed <<'A'
+          chr1	1	10
+          chr1	20	30
+          A
+          cat > testdata/b.bed <<'B'
+          chr1	5	15
+          B
+
+          docker run --rm picotainers-local/bedtools:smoke --version > testdata/version.txt
+          grep -Ei 'bedtools|v2\.31\.1|2\.31\.1' testdata/version.txt
+
+          docker run --rm -v "$PWD/testdata:/data" picotainers-local/bedtools:smoke intersect -a /data/a.bed -b /data/b.bed > testdata/intersect.out
+          test -s testdata/intersect.out
+          grep -q $'chr1\t5\t10' testdata/intersect.out
+
       - name: Login to DockerHub
         uses: docker/login-action@v3
         with:
