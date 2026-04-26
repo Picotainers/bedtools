@@ -1,13 +1,27 @@
 # bedtools
-Source-built static `bedtools` container.
 
-## how to use
+Source-built container for `bedtools`, a toolkit for genome arithmetic on BED/GFF/VCF/BAM interval data.
+
+## Quick Usage
+
 ```bash
-docker run --rm -v "$(pwd):/data" picotainers/bedtools:latest --help
+docker pull docker.io/picotainers/bedtools:latest
+docker run --rm docker.io/picotainers/bedtools:latest --help
 ```
 
-## example
+## Usage
+
 ```bash
-docker run --rm -v "$(pwd):/data" picotainers/bedtools:latest \
+# show version
+docker run --rm docker.io/picotainers/bedtools:latest --version
+
+# intersect two BED files mounted from the current directory
+docker run --rm -v "$(pwd):/data" docker.io/picotainers/bedtools:latest \
   intersect -a /data/a.bed -b /data/b.bed
+```
+
+## Building
+
+```bash
+docker build -t docker.io/picotainers/bedtools:latest .
 ```
