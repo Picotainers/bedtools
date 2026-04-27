@@ -1,13 +1,17 @@
 # bedtools
 Source-built static `bedtools` container.
 
-## how to use
+## Quick Usage
 ```bash
-docker run --rm -v "$(pwd):/data" picotainers/bedtools:latest --help
+# Pull the image
+docker pull docker.io/picotainers/bedtools:latest
+
+# Run the tool
+docker run --rm docker.io/picotainers/bedtools:latest --help
 ```
 
-## example
+## Example
 ```bash
-docker run --rm -v "$(pwd):/data" picotainers/bedtools:latest \
+docker run --rm -v "$(pwd):/data" docker.io/picotainers/bedtools:latest \
   intersect -a /data/a.bed -b /data/b.bed
 ```
